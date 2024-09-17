@@ -1,49 +1,83 @@
 # match Hardware Utilities
 
-### Installation of DualShock Support
+## Installation of DualShock Support
 
-#### Install driver ds4drv
-1. Install pip for python
-    
-    `sudo apt install pip`
+This package needs the mirMsgs package from `match_mobile_robotic`
 
-2. Install Dualshock ds4drv driver to use ds4ros
+### Setup workspace
 
-    `$ sudo -H pip install git+https://github.com/gerardcanal/ds4drv`
+Create catkin folder `system_ctl_ws` in the home dictionary
 
-3. Add ds4drv rule
+Clone `match_hardware_utilities` into the `src` folder
 
-    `sudo wget https://raw.githubusercontent.com/chrippa/ds4drv/master/udev/50-ds4drv.rules -O /etc/udev/rules.d/50-ds4drv.rules`
+Clone submodule  `ds4ros` into the folder
 
-4. Update udevadm
+Install Dualshock ds4drv driver to use ds4ros
 
-    `sudo udevadm control --reload-rules && sudo udevadm trigger`
+    sudo -H pip install git+https://github.com/gerardcanal/ds4drv
 
-5. Reboot
+Add ds4drv rule
 
-#### Connect the DualShock controller
-1. Open bluetoothctl in a terminal
+    sudo wget https://raw.githubusercontent.com/chrippa/ds4drv/master/udev/50-ds4drv.rules -O /etc/udev/rules.d/50-ds4drv.rules
 
-    `bluetoothctl`
+Update udevadm
 
-2. Enable scan
+    sudo udevadm control --reload-rules && sudo udevadm trigger
 
-    `scan on`
+Build `system_ctl_ws` and reboot
 
-3. Press Share-button and PlayStation-button on DualShock controller for 5s
+### Connect the DualShock controller and configure autostart
+
+Open bluetoothctl in a terminal
+
+    bluetoothctl
+
+Enable scan
+
+    scan on
+
+Press Share-button and PlayStation-button on DualShock controller for 5s
 
 "Wireless Controller" with MAC-adress should pop up
 
-4. Connect to Wireless Controller:
+Connect to Wireless Controller:
 
-    `connect "MAC"`
+    connect "MAC"
 
-5. Trust Wireless Controller
+Trust Wireless Controller
 
-    `trust "MAC"`
+    trust "MAC"
 
-6. Exit bluetoothctl
+Exit bluetoothctl
 
-    `exit`
+    exit
 
-DualShock-Controller should now automatically connect to the MUR after a reboot by pressing the PlayStation-Button
+Configure the MAC adress in the `autostart.sh` file, reboot and test it using `bash autostart.sh`
+
+### Install autostart.sh
+
+Create systemd service
+
+    nano /etc/systemd/system/autostart_ds4.service
+
+Enter this configuration:
+
+    [Unit]
+    Description=ROS Autostart Service
+    After=network.target  # Ensure the network is up before starting
+
+    [Service]
+    ExecStart=bash /home/rosmatch/system_ctl_ws/src/match_hardware_utilities/ds4_controller/scripts/autostart.sh
+    StandardOutput=inherit
+    StandardError=inherit
+    Restart=always  # Automatically restart if the process crashes
+    User=rosmatch
+    Environment="ROS_MASTER_URI=http://mir:11311"
+
+    [Install]
+    WantedBy=multi-user.target
+
+Reload and enable autostart
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable autostart_ds4.service
